@@ -1,5 +1,7 @@
 import random
 
+from django.core.exceptions import ObjectDoesNotExist
+
 from .models import Schoolkid, Subject, Lesson, Chastisement, Commendation, Mark
 
 
@@ -15,6 +17,9 @@ def get_schoolkid(schoolkid):
 
 def fix_marks(schoolkid):
     child = get_schoolkid(schoolkid)
+    if not child:
+
+        return
 
     Mark.objects.filter(schoolkid=child, points__in=[2, 3]).update(points=5)
 
@@ -23,6 +28,9 @@ def fix_marks(schoolkid):
 
 def delete_chastisement(schoolkid):
     child = get_schoolkid(schoolkid)
+    if not child:
+
+        return
     Chastisement.objects.filter(schoolkid=child).delete()
 
     print(f'Все замечания ученика {child} удалены')
@@ -36,9 +44,12 @@ def create_commendation(schoolkid, subject_title, lesson_date):
     best_commendation = random.choice(commendations)
 
     child = get_schoolkid(schoolkid)
+    if not child:
+
+        return
     subject = Subject.objects.filter(title=subject_title, year_of_study=child.year_of_study).first()
     if not subject:
-        print(f'Предмет с названием "{subject_title}" для указанного класса не найден.')
+        raise ObjectDoesNotExist(f'Предмет с названием "{subject_title}" для указанного класса не найден.')
     lesson = Lesson.objects.filter(
         subject=subject,
         year_of_study=child.year_of_study,
@@ -46,7 +57,7 @@ def create_commendation(schoolkid, subject_title, lesson_date):
         date=lesson_date
     ).first()
     if not lesson:
-        print(f'Не найден урок для создания похвалы на указанную дату {lesson_date}.')
+        raise ObjectDoesNotExist(f'Не найден урок для создания похвалы на указанную дату {lesson_date}.')
     teacher = lesson.teacher
 
     Commendation.objects.create(
